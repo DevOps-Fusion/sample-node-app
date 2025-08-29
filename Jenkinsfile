@@ -1,39 +1,33 @@
 pipeline {
     agent any
 
-    tools {
-        nodejs "NodeJS" // This must match the name set in Jenkins Global Tool Configuration
-    }
-
     environment {
-        IMAGE_NAME = "sample-node-app"
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
+        IMAGE_NAME = "prabhat2025/sample-node-app"
     }
 
     stages {
-        stage('Clone') {
+        stage('Checkout') {
             steps {
-                // Cloning is handled by Jenkins automatically when using Pipeline from SCM
-                echo "Source code already cloned by Jenkins from https://github.com/DevOps-Fusion/sample-node-app.git"
+                git branch: 'main', url: 'https://github.com/DevOps-Fusion/sample-node-app.git'
             }
         }
 
-        stage('Install Dependencies') {
+        stage('Build Docker Image') {
             steps {
-                bat 'npm install'
+                sh 'docker build -t $IMAGE_NAME:latest .'
             }
         }
 
-        stage('Run Tests') {
+        stage('Login to Docker Hub') {
             steps {
-                bat 'npm test'
+                sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
             }
         }
 
-        stage('Docker Build') {
+        stage('Push Docker Image') {
             steps {
-                script {
-                    docker.build("${env.IMAGE_NAME}")
-                }
+                sh 'docker push $IMAGE_NAME:latest'
             }
         }
     }
